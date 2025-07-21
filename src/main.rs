@@ -1,11 +1,19 @@
+mod app;
 mod blockchain;
 
-use blockchain::block::Block;
+use actix_web::{App,HttpServer};
+use app::routes::config;
 
-fn main(){
-    let genesis = Block::genesis();
-    println!("{}",genesis);
+#[actix_web::main]
+async fn main()->std::io::Result<()>{
+    println!("Starting server on http://localhost3001");
 
-    let new_block = Block::mine_block(&genesis,"some-data".to_string());
-    println!("{}",new_block);
+    HttpServer::new(||{
+        App::new()
+            .configure(config)
+    })
+    .bind(("127.0.0.1",3001)).expect("error while running the server")
+    .run()
+    .await
+
 }
