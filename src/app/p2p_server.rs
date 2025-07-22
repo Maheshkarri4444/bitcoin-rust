@@ -1,4 +1,5 @@
-use std::sync::{Arc,Mutex};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use tokio::net::TcpListener;
 use tokio_tungstenite::{connect_async,accept_async, tungstenite::protocol::Message,WebSocketStream};
 use tokio_tungstenite::MaybeTlsStream;
@@ -6,6 +7,7 @@ use futures::{StreamExt,SinkExt,future};
 use tokio::net::TcpStream;
 use url::Url;
 use tokio::time::{timeout,Duration};
+use serde_json::Value;
 
 use crate::blockchain::blockchain::Blockchain;
 
@@ -18,7 +20,7 @@ use crate::blockchain::blockchain::Blockchain;
 pub struct P2pServer{
     pub blockchain:Arc<Mutex<Blockchain>>,
     pub peers:Vec<String>,
-    pub sockets:  Vec<WebSocketStream<MaybeTlsStream<TcpStream>>>,
+    pub sockets:  Vec<Arc<Mutex<WebSocketStream<MaybeTlsStream<TcpStream>>>>>,
 }
 
 impl P2pServer{
@@ -73,9 +75,49 @@ impl P2pServer{
         socket: tokio_tungstenite::WebSocketStream<MaybeTlsStream<TcpStream>>,
     ){
         println!("Peer socket connected!");
-        self.sockets.push(socket);
+        let socket = Arc::new(Mutex::new(socket));
+        self.sockets.push(socket.clone());
+
+        self.message_handler(socket.clone()).await;
+
+        let blockchain = self.blockchain.lock().await;
+        let chain_json = serde_json::to_string(&blockchain.chain).unwrap();
+        let mut locked_socket = socket.lock().await;
+        if let Err(e)=locked_socket.send(Message::Text(chain_json)).await{
+            eprintln!("Failed to send Blockchain: {}",e);
+        }
     }
+
+    async fn message_handler(
+        &self,
+        socket: Arc<Mutex<WebSocketStream<MaybeTlsStream<TcpStream>>>>,
+    ){
+        tokio::spawn( async move {
+                        let mut socket = socket.lock().await;
+                        while let Some(msg_result)=socket.next().await{
+                            match msg_result {
+                                Ok(msg) if msg.is_text()=>{
+                                    let text = msg.into_text().unwrap();
+                                    match serde_json::from_str::<Value>(&text){
+                                        Ok(data)=> println!("data: {:?}",data),
+                                        Err(e)=>eprintln!("Invalid Json: {}",e),
+                                    }
+                                }
+                                Ok(_)=>{}
+                                Err(e)=>{
+                                    eprintln!("Websocket error: {}",e);
+                                    break;
+                                }
+                            }
+                        }
+            }
+        );
+    }
+
 }
+
+
+
 
 pub fn start_p2p_server(port:String,peers:String)->std::thread::JoinHandle<()>{
     std::thread::spawn(move|| {
