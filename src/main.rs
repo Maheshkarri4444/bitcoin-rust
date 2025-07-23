@@ -1,11 +1,14 @@
 mod app;
 mod blockchain;
 
-use actix_web::{App,HttpServer};
+use actix_web::{App,HttpServer,web};
 use app::routes::config;
 use std::env;
 use dotenv::dotenv;
-use std::thread;
+use std::sync::Arc;
+use tokio::sync::Mutex as TokioMutex;
+use blockchain::blockchain::Blockchain;
+use app::p2p_server::P2pServer;
 
 #[actix_web::main]
 async fn main()->std::io::Result<()>{
@@ -18,15 +21,35 @@ async fn main()->std::io::Result<()>{
     println!("Starting HTTP server on http://localhost:{}",http_port);
     println!("Starting P2P server on http://localhost:{}",p2p_port);
 
-    let p2p_port_clone = p2p_port.clone();
-    let peers_clone = peers.clone();
-    thread::spawn(move||{
-        app::p2p_server::start_p2p_server(p2p_port_clone,peers_clone);
-    });
+    let peer_list: Vec<String>= peers
+        .split(',')
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .collect();
 
+    let blockchain = Arc::new(TokioMutex::new(Blockchain::new()));
 
-    HttpServer::new(||{
+    let p2p_server = Arc::new(P2pServer::new(
+        blockchain.clone(),
+        peer_list,
+    ));
+
+    {
+        let p2p_server = p2p_server.clone();
+        let p2p_port = p2p_port.clone();
+        std::thread::spawn(move||{
+            let runtime = tokio::runtime::Runtime::new().unwrap();
+            runtime.block_on(async move {
+                let port_num = p2p_port.parse::<u16>().expect("Invalid port nubmer");
+                p2p_server.listen(port_num).await;
+            });
+        });
+    }
+
+    HttpServer::new(move ||{
         App::new()
+            .app_data(web::Data::new(blockchain.clone()))
+            .app_data(web::Data::new(p2p_server.clone()))
             .configure(config)
     })
     .bind(format!("127.0.0.1:{}",http_port)).expect("unable to start server")
