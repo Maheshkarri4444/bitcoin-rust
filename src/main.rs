@@ -1,5 +1,6 @@
 mod app;
 mod blockchain;
+mod config;
 
 use actix_web::{App,HttpServer,web};
 use app::routes::config;
