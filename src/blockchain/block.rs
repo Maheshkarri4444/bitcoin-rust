@@ -1,7 +1,7 @@
 use sha2::{Sha256,Digest};
 use std::fmt;
 use serde::{Serialize, Deserialize};
-use crate::config::DIFFICULTY;
+use crate::config::{DIFFICULTY,MINE_RATE};
 
 #[derive(Debug,Clone,Serialize,Deserialize,PartialEq)]
 pub struct Block {
@@ -11,10 +11,11 @@ pub struct Block {
     pub hash: String,
     pub data: String,
     pub nonce: u64,
+    pub difficulty: usize,
 }
 
 impl Block{
-    pub fn new(block_number: u64, timestamp: u128, last_hash: String,hash: String,data:String,nonce:u64)->Self{
+    pub fn new(block_number: u64, timestamp: u128, last_hash: String,hash: String,data:String,nonce:u64,difficulty:usize)->Self{
         Self{
             block_number,
             timestamp,
@@ -22,22 +23,26 @@ impl Block{
             hash,
             data,
             nonce,
+            difficulty,
         }
     }
 
     pub fn genesis()->Block{
-        Block::new(0,0,String::from("----"),String::from("f1r57-h45h"),String::from(""),0)
+        Block::new(0,0,String::from("----"),String::from("f1r57-h45h"),String::from(""),0,DIFFICULTY)
     }
 
     pub fn mine_block(last_block: &Block,data:String)->Block{
         let last_hash = last_block.hash.clone();
         let block_number = last_block.block_number +1;
         let mut nonce = 0u64;
+        let mut timestamp: u128;
+        let mut difficulty = last_block.difficulty;
         loop {
             let timestamp = chrono::Utc::now().timestamp_millis() as u128;
-            let hash = Block::hash(block_number,timestamp,&last_hash , &data, &nonce);
+            let difficulty = Block::adjust_difficulty(last_block,timestamp);
+            let hash = Block::hash(block_number,timestamp,&last_hash , &data, &nonce,&difficulty);
 
-            if hash.chars().take(DIFFICULTY).all(|c| c=='0'){
+            if hash.chars().take(difficulty).all(|c| c=='0'){
                 return Block::new(
                     block_number,
                     timestamp,
@@ -45,14 +50,15 @@ impl Block{
                     hash,
                     data,
                     nonce,
+                    difficulty,
                 );
             }
             nonce+=1;
         }
     }
 
-    pub fn hash(block_number:u64,timestamp:u128,last_hash:&str,data:&str,nonce:&u64)->String{
-        let input = format!("{}{}{}{}{}",block_number,timestamp,last_hash,data,nonce);
+    pub fn hash(block_number:u64,timestamp:u128,last_hash:&str,data:&str,nonce:&u64,difficulty:&usize)->String{
+        let input = format!("{}{}{}{}{}{}",block_number,timestamp,last_hash,data,nonce,difficulty);
         let mut hasher = Sha256::new();
         hasher.update(input);
         let result = hasher.finalize();
@@ -60,7 +66,21 @@ impl Block{
     }
 
     pub fn block_hash(block:&Block)->String{
-        Block::hash(block.block_number,block.timestamp,&block.last_hash,&block.data,&block.nonce)
+        Block::hash(block.block_number,block.timestamp,&block.last_hash,&block.data,&block.nonce,&block.difficulty,)
+    }
+
+    pub fn adjust_difficulty(last_block:&Block , current_time:u128)->usize{
+        let mut difficulty =last_block.difficulty;
+        if difficulty < 1{
+            return 1;
+        }
+        if last_block.timestamp + MINE_RATE > current_time {
+            difficulty + 1
+        } else if difficulty > 1 {
+            difficulty - 1
+        } else {
+            1
+        }
     }
 }
 
@@ -69,17 +89,19 @@ impl fmt::Display for Block {
         write!{
             f,
             "Block -
-            Number:    {}
-            Timestamp: {}
-            Last Hash: {}
-            Hash     : {}
-            Nonce    : {}  
-            Data     : {}",
+            Number    : {}
+            Timestamp : {}
+            Last Hash : {}
+            Hash      : {}
+            Nonce     : {}  
+            Difficulty: {}
+            Data      : {}",
             self.block_number,
             self.timestamp,
             &self.last_hash[..10.min(self.last_hash.len())],
             &self.hash[..10.min(self.hash.len())],
             self.nonce,
+            self.difficulty,
             self.data
         }
     }

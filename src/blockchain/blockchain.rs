@@ -31,7 +31,7 @@ impl Blockchain {
                 return false;
             }
 
-            if block.hash != Block::hash(block.block_number,block.timestamp,&block.last_hash,&block.data,&block.nonce){
+            if block.hash != Block::hash(block.block_number,block.timestamp,&block.last_hash,&block.data,&block.nonce,&block.difficulty){
                 return false;
             }
         }
