@@ -1,6 +1,8 @@
 mod app;
 mod blockchain;
 mod config;
+mod chain_util;
+mod wallet;
 
 use actix_web::{App,HttpServer,web};
 use app::routes::config;

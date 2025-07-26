@@ -1,17 +1,27 @@
 use std::fmt;
+use crate::config::INITIAL_BALANCE;
+use k256::ecdsa::{SigningKey,VerifyingKey};
+use k256::EncodedPoint;
+use k256::elliptic_curve::sec1::ToEncodedPoint;
+use crate::chain_util::ChainUtil;
 
 pub struct Wallet {
     pub balance: u64,
-    pub key_pair: Option<String>,
-    pub public_key: Option<String>, 
+    pub key_pair: SigningKey,
+    pub public_key: String, 
 }
 
 impl Wallet {
     pub fn new() -> Self{
+        let (key_pair,verifying_key) = ChainUtil::gen_key_pair();
+        let public_key_point:EncodedPoint = verifying_key.to_encoded_point(false);
+        let public_key_hex = hex::encode(public_key_point.as_bytes());
+
+    
         Self {
-            balance:crate::config::INITIAL_BALANCE,
-            key_pair: None,
-            public_key: None,
+            balance:INITIAL_BALANCE,
+            key_pair,
+            public_key:public_key_hex,
         }
     }
 }
@@ -21,7 +31,7 @@ impl fmt::Display for Wallet {
         write!{
             f,
             "Wallet -\n publicKey: {}\n balance:{}",
-            self.public_key.as_deref().unwrap_or("None"),
+            self.public_key,
             self.balance
         }
     }
