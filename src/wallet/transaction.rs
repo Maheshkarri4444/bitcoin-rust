@@ -65,4 +65,16 @@ impl Transaction{
             signature: signature.as_ref().to_vec(),
         })
     }
+
+    pub fn verify_transaction(transaction:&Transaction)->bool{
+        if let Some(input)=&transaction.input{
+            ChainUtil::verify_signature(
+                &input.address,
+                &input.signature,
+                &ChainUtil::hash(&transaction.outputs),
+            )
+        } else {
+            false
+        }
+    }
 }

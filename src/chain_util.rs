@@ -1,4 +1,4 @@
-use k256::ecdsa::{SigningKey, VerifyingKey};
+use k256::ecdsa::{SigningKey, VerifyingKey,signature::Verifier,Signature};
 use k256::EncodedPoint;
 use rand_core::OsRng;
 use uuid::Uuid;
@@ -25,5 +25,37 @@ impl ChainUtil {
         hasher.update(json);
         let result = hasher.finalize();
         hex::encode(result)
+    }
+
+    pub fn verify_signature(public_key_hex:&str, signature_bytes:&[u8],data_hash:&str)->bool {
+        let public_key_bytes = match hex::decode(public_key_hex){
+            Ok(bytes)=>bytes,
+            Err(_)=>return false,
+        };
+
+        let encoded_point = match EncodedPoint::from_bytes(&public_key_bytes){
+            Ok(point)=>point,
+            Err(_)=>return false,
+        };
+
+        let verifying_key = match 
+        VerifyingKey::from_encoded_point(&encoded_point){
+            Ok(key)=>key,
+            Err(_)=>return false,
+        };
+
+        let signature = match Signature::from_der(signature_bytes){
+            Ok(sig)=>sig,
+            Err(_)=>return false,
+        };
+
+        let msg_bytes = match hex::decode(data_hash){
+            Ok(bytes)=>bytes,
+            Err(_)=>return false,
+        };
+
+        verifying_key.verify(&msg_bytes,&signature).is_ok()
+
+
     }
 }
