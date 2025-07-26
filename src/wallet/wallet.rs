@@ -1,6 +1,6 @@
 use std::fmt;
 use crate::config::INITIAL_BALANCE;
-use k256::ecdsa::{SigningKey,VerifyingKey};
+use k256::ecdsa::{SigningKey,VerifyingKey,Signature,signature::Signer};
 use k256::EncodedPoint;
 use k256::elliptic_curve::sec1::ToEncodedPoint;
 use crate::chain_util::ChainUtil;
@@ -23,6 +23,11 @@ impl Wallet {
             key_pair,
             public_key:public_key_hex,
         }
+    }
+    
+    pub fn sign(&self , data_hash: &str) ->Signature {
+        let bytes = hex::decode(data_hash).expect("Invalid hex string for signing");
+        self.key_pair.sign(&bytes)
     }
 }
 

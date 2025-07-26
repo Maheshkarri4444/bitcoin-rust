@@ -1,16 +1,25 @@
-use k256::ecdsa::{VerifyingKey};
+use k256::ecdsa::{VerifyingKey,Signature};
 use uuid::Uuid;
 use std::collections::HashMap;
 use crate::chain_util::ChainUtil;
 use crate::wallet::wallet::Wallet;
+use serde::{Serialize,Deserialize}; 
+
+#[derive(Serialize,Deserialize)]
+pub struct Input {
+    pub timestamp:u128,
+    pub amount:u64,
+    pub address:String,
+    pub signature:Vec<u8>,
+}
 
 pub struct Transaction {
     pub id:String,
-    pub input: Option<String>,
+    pub input: Option<Input>,
     pub outputs: Vec<Output>,
 }
 
-#[derive(Clone)]
+#[derive(Clone,Serialize,Deserialize)]
 pub struct Output {
     pub amount: u64,
     pub address: String,
@@ -35,10 +44,25 @@ impl Transaction{
             address:recipient,
         });
 
-        Some(Transaction{
-            id:ChainUtil::id(),
+        let mut transaction = Transaction{
+            id: ChainUtil::id(),
             input:None,
             outputs,
+        };
+
+        transaction.sign_transaction(sender_wallet);
+
+        Some(transaction)
+    }
+
+    fn sign_transaction(&mut self , sender_wallet:&Wallet){
+        let hash = ChainUtil::hash(&self.outputs);
+        let signature = sender_wallet.sign(&hash);
+        self.input = Some(Input{
+            timestamp: chrono::Utc::now().timestamp_millis() as u128,
+            amount:sender_wallet.balance,
+            address: sender_wallet.public_key.clone(),
+            signature: signature.as_ref().to_vec(),
         })
     }
 }

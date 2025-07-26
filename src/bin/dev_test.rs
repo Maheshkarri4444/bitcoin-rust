@@ -6,7 +6,7 @@ fn main() {
     let mut bc = Blockchain::new();
 
     for i in 0..10 {
-        let block = bc.add_block(format!("block {}", i));
+        let block = bc.add_block(vec![format!("block {}", i)]);
         println!("{}", block);
     }
 

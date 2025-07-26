@@ -3,7 +3,7 @@ use crate::config::DIFFICULTY;
 
 #[test]
 fn it_sets_data_to_match_input(){
-    let data="example".to_string();
+    let data = vec!["example".to_string()];
     let last_block = Block::genesis();
     let block = Block::mine_block(&last_block,data.clone());
 
@@ -12,7 +12,7 @@ fn it_sets_data_to_match_input(){
 
 #[test]
 fn it_sets_last_hash_to_match_last_block_hash(){
-    let data = "bar".to_string();
+    let data = vec!["bar".to_string()];
     let last_block = Block::genesis();
     let block = Block::mine_block(&last_block, data);
 
@@ -21,7 +21,7 @@ fn it_sets_last_hash_to_match_last_block_hash(){
 
 #[test]
 fn it_generates_a_hash_that_matches_difficulty(){
-    let data = "testdata".to_string();
+    let data = vec!["testdata".to_string()];
     let last_block = Block::genesis();
     let block = Block::mine_block(&last_block,data);
 

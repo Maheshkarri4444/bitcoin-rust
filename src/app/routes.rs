@@ -19,7 +19,7 @@ async fn get_blocks(
 
 #[derive(Deserialize)]
 struct MineRequest {
-    data:String,
+    data:Vec<String>,
 }
 
 #[post("/mine")]

@@ -12,7 +12,7 @@ impl Blockchain {
         }
     }
 
-    pub fn add_block(&mut self,data:String)->Block{
+    pub fn add_block(&mut self,data:Vec<String>)->Block{
         let last_block=self.chain.last().expect("Blockchain should have atleat one block");
         let new_block= Block::mine_block(last_block,data);
         self.chain.push(new_block.clone());

@@ -10,7 +10,7 @@ fn test_genesis_block(){
 #[test]
 fn test_add_block(){
     let mut bc = Blockchain::new();
-    let data = "foo".to_string();
+    let data = vec!["foo".to_string()];
     bc.add_block(data.clone());
 
     let last_block = bc.chain.last().unwrap();
@@ -24,7 +24,7 @@ fn test_valid_chain(){
     let mut bc1 = Blockchain::new();
     let mut bc2 = Blockchain::new();
 
-    bc2.add_block("foo".to_string());
+    bc2.add_block(vec!["foo".to_string()]);
 
     assert!(Blockchain::is_valid_chain(&bc2.chain));
 }
@@ -34,7 +34,7 @@ fn test_invalid_genesis_block() {
     let mut bc = Blockchain::new();
     let mut bc2 = Blockchain::new();
 
-    bc2.chain[0].data = "Bad data".to_string();
+    bc2.chain[0].data = vec!["Bad data".to_string()];
     assert!(!Blockchain::is_valid_chain(&bc2.chain));
 }
 
@@ -44,8 +44,8 @@ fn test_invalid_chain_data() {
     let mut bc = Blockchain::new();
     let mut bc2 = Blockchain::new();
 
-    bc2.add_block("foo".to_string());
-    bc2.chain[1].data = "Not foo".to_string(); // Corrupt data
+    bc2.add_block(vec!["foo".to_string()]);
+    bc2.chain[1].data = vec!["Not foo".to_string()]; // Corrupt data
 
     assert!(!Blockchain::is_valid_chain(&bc2.chain));
 }
@@ -55,7 +55,7 @@ fn test_replace_chain_valid() {
     let mut bc = Blockchain::new();
     let mut bc2 = Blockchain::new();
 
-    bc2.add_block("goo".to_string());
+    bc2.add_block(vec!["goo".to_string()]);
 
     bc.replace_chain(bc2.chain.clone());
     assert_eq!(bc.chain, bc2.chain);
@@ -67,7 +67,7 @@ fn test_replace_chain_invalid_or_shorter(){
     let mut bc = Blockchain::new();
     let mut bc2 = Blockchain::new();
 
-    bc.add_block("foo".to_string());
+    bc.add_block(vec!["foo".to_string()]);
     bc.replace_chain(bc2.chain.clone());
 
     assert_ne!(bc.chain, bc2.chain);

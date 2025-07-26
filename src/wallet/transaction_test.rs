@@ -47,5 +47,30 @@ mod tests{
 
         assert!(transaction.is_none(), "Transaction should not be created when amount exceeds balance");
     }
+
+    #[test]
+    fn test_transaction_outputs_subtract_and_add_correctly() {
+        let wallet = Wallet::new();
+        let recipient = "recipientpublickey".to_string();
+        let amount = 50;
+        let transaction = Transaction::new_transaction(&wallet, recipient.clone(), amount).unwrap();
+
+        // Output for wallet: balance - amount
+        let sender_output = transaction
+            .outputs
+            .iter()
+            .find(|o| o.address == wallet.public_key)
+            .expect("Sender output not found");
+        assert_eq!(sender_output.amount, wallet.balance - amount);
+
+        let recipient_output = transaction
+            .outputs
+            .iter()
+            .find(|o| o.address == recipient)
+            .expect("Recipient output not found");
+        assert_eq!(recipient_output.amount, amount);
+
+        assert_eq!(transaction.input.as_ref().unwrap().amount, wallet.balance);
+    }
 }
 
