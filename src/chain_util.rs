@@ -14,6 +14,6 @@ impl ChainUtil {
     }
 
     pub fn id()->String {
-        Uuid::new_v4.to_string()
+        Uuid::new_v4().to_string()
     }
 }

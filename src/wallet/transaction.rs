@@ -2,6 +2,7 @@ use k256::ecdsa::{VerifyingKey};
 use uuid::Uuid;
 use std::collections::HashMap;
 use crate::chain_util::ChainUtil;
+use crate::wallet::wallet::Wallet;
 
 pub struct Transaction {
     pub id:String,
@@ -15,10 +16,6 @@ pub struct Output {
     pub address: String,
 }
 
-pub struct Wallet{
-    pub balance: u64,
-    pub public_key: String,
-}
 
 impl Transaction{
     pub fn new_transaction(sender_wallet: &Wallet,recipient:String,amount:u64)->Option<Self>{
