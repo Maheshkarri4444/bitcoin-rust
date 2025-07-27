@@ -5,21 +5,21 @@ use crate::chain_util::ChainUtil;
 use crate::wallet::wallet::Wallet;
 use serde::{Serialize,Deserialize}; 
 
-#[derive(Serialize,Deserialize)]
+#[derive(Clone,Serialize,Deserialize,Debug,PartialEq)]
 pub struct Input {
     pub timestamp:u128,
     pub amount:u64,
     pub address:String,
     pub signature:Vec<u8>,
 }
-
+#[derive(Serialize,Deserialize,Debug,PartialEq,Clone)]
 pub struct Transaction {
     pub id:String,
     pub input: Option<Input>,
     pub outputs: Vec<Output>,
 }
 
-#[derive(Clone,Serialize,Deserialize)]
+#[derive(Clone,Serialize,Deserialize,PartialEq,Debug)]
 pub struct Output {
     pub amount: u64,
     pub address: String,
