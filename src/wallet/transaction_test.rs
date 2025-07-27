@@ -104,6 +104,39 @@ mod tests{
         // Expect the verification to fail
         assert!(!Transaction::verify_transaction(&transaction), "Corrupt transaction should fail verification");
     }
+
+    #[test]
+    fn updating_a_transaction_subtracts_and_outputs_to_next_recipient(){
+        let wallet = Wallet::new();
+        let recipient = String::from("recipient_public_key");
+        let amount = 50;
+        let mut transaction = Transaction::new_transaction(&wallet, recipient.clone(), amount)
+            .expect("Transaction should be created");
+
+        let next_amount = 20;
+        let next_recipient = "next-address".to_string();
+
+        let update_result = transaction.update(&wallet, next_recipient.clone(), next_amount);
+        assert!(update_result.is_some(), "Transaction update should succeed");
+
+        let sender_output = transaction.outputs.iter()
+            .find(|output| output.address == wallet.public_key)
+            .expect("Sender output should exist after update");
+        assert_eq!(
+            sender_output.amount,
+            wallet.balance - amount - next_amount,
+            "Sender output should subtract both amounts"
+        );
+
+        let next_recipient_output = transaction.outputs.iter()
+            .find(|output| output.address == next_recipient)
+            .expect("Next recipient output should exist after update");
+        assert_eq!(
+            next_recipient_output.amount,
+            next_amount,
+            "Next recipient output should match the updated amount"
+        );
+    }
 }
 
 
