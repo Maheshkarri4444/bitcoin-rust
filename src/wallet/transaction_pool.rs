@@ -1,5 +1,7 @@
 use crate::wallet::transaction::Transaction;
+use serde::{Serialize,Deserialize};
 
+#[derive(Serialize,Deserialize)]
 pub struct TransactionPool{
     pub transactions:Vec<Transaction>,
 }
