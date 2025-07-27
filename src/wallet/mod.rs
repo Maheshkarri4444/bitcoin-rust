@@ -5,3 +5,6 @@ pub mod transaction_pool;
 mod transaction_test;
 #[cfg(test)]
 mod transaction_pool_test;
+#[cfg(test)]
+mod wallet_test;
+

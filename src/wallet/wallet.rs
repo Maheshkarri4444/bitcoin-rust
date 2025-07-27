@@ -4,6 +4,8 @@ use k256::ecdsa::{SigningKey,VerifyingKey,Signature,signature::Signer};
 use k256::EncodedPoint;
 use k256::elliptic_curve::sec1::ToEncodedPoint;
 use crate::chain_util::ChainUtil;
+use crate::wallet::transaction_pool::TransactionPool;
+use crate::wallet::transaction::Transaction;
 
 pub struct Wallet {
     pub balance: u64,
@@ -30,7 +32,7 @@ impl Wallet {
         self.key_pair.sign(&bytes)
     }
 
-    pub fn create_transaction(&self,recipient:String,transaction_pool:&mut TransactionPool)-> Option<Transaction>{
+    pub fn create_transaction(&self,recipient:String,amount:u64,transaction_pool:&mut TransactionPool)-> Option<Transaction>{
         if amount > self.balance {
             println!(
                 "Amount: {} exceeds current balance: {}",
@@ -40,7 +42,7 @@ impl Wallet {
         }
         if let Some(existing_tx) = transaction_pool.existing_transaction(&self.public_key){
             let mut tx = existing_tx.clone();
-            if tx.update(Self,recipient,amount).is_some(){
+            if tx.update(self,recipient,amount).is_some(){
                 transaction_pool.update_or_add_transaction(tx.clone());
                 Some(tx)
             }else{
