@@ -18,4 +18,14 @@ impl TransactionPool {
             self.transactions.push(transaction);
         }
     }
+
+    pub fn existing_transaction(&self, address:&str)-> Option<&Transaction>{
+        self.transactions.iter().find(|t|{
+            if let Some(input) = &t.input{
+                input.address == address
+            } else {
+                false
+            }
+        })
+    }
 }

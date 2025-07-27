@@ -29,6 +29,32 @@ impl Wallet {
         let bytes = hex::decode(data_hash).expect("Invalid hex string for signing");
         self.key_pair.sign(&bytes)
     }
+
+    pub fn create_transaction(&self,recipient:String,transaction_pool:&mut TransactionPool)-> Option<Transaction>{
+        if amount > self.balance {
+            println!(
+                "Amount: {} exceeds current balance: {}",
+                amount , self.balance
+            );
+            return None;
+        }
+        if let Some(existing_tx) = transaction_pool.existing_transaction(&self.public_key){
+            let mut tx = existing_tx.clone();
+            if tx.update(Self,recipient,amount).is_some(){
+                transaction_pool.update_or_add_transaction(tx.clone());
+                Some(tx)
+            }else{
+                None
+            }
+        }else {
+            if let Some(mut tx) = Transaction::new_transaction(self,recipient,amount){
+                transaction_pool.update_or_add_transaction(tx.clone());
+                Some(tx)
+            }else{
+                None
+            }
+        }
+    }
 }
 
 impl fmt::Display for Wallet {
