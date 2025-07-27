@@ -74,6 +74,7 @@ impl Transaction{
                 &ChainUtil::hash(&transaction.outputs),
             )
         } else {
+            println!("false called in verify sign");
             false
         }
     }

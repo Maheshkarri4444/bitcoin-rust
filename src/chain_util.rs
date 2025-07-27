@@ -1,4 +1,8 @@
-use k256::ecdsa::{SigningKey, VerifyingKey,signature::Verifier,Signature};
+use k256::ecdsa::{
+    SigningKey, VerifyingKey,
+    signature::{Signer, Verifier, Signature as _}, 
+    Signature as K256Signature,
+};
 use k256::EncodedPoint;
 use rand_core::OsRng;
 use uuid::Uuid;
@@ -28,30 +32,42 @@ impl ChainUtil {
     }
 
     pub fn verify_signature(public_key_hex:&str, signature_bytes:&[u8],data_hash:&str)->bool {
+        println!("verify sign called");
         let public_key_bytes = match hex::decode(public_key_hex){
             Ok(bytes)=>bytes,
-            Err(_)=>return false,
+            Err(_)=>{  println!("pub_key bytes false");
+            return false},
         };
 
         let encoded_point = match EncodedPoint::from_bytes(&public_key_bytes){
             Ok(point)=>point,
-            Err(_)=>return false,
+             Err(_)=>{  println!("encoded_point bytes false");
+            return false},
         };
 
         let verifying_key = match 
         VerifyingKey::from_encoded_point(&encoded_point){
             Ok(key)=>key,
-            Err(_)=>return false,
+             Err(_)=>{  println!("verifying key bytes false");
+            return false},
         };
 
-        let signature = match Signature::from_der(signature_bytes){
-            Ok(sig)=>sig,
-            Err(_)=>return false,
+        if signature_bytes.len() != 64 {
+            println!("signature length is not 64 bytes: {}", signature_bytes.len());
+            return false;
+        }
+        let signature = match K256Signature::from_bytes(signature_bytes) {
+            Ok(sig) => sig,
+            Err(_) => {
+                println!("signature bytes invalid format");
+                return false;
+            }
         };
 
         let msg_bytes = match hex::decode(data_hash){
             Ok(bytes)=>bytes,
-            Err(_)=>return false,
+             Err(_)=>{  println!("msg_bytes bytes false");
+            return false},
         };
 
         verifying_key.verify(&msg_bytes,&signature).is_ok()

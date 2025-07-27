@@ -72,5 +72,40 @@ mod tests{
 
         assert_eq!(transaction.input.as_ref().unwrap().amount, wallet.balance);
     }
+
+
+    // ----- New test for validating a valid transaction -----
+    #[test]
+    fn validates_a_valid_transaction() {
+        let wallet = Wallet::new();
+        let recipient = String::from("recipient_public_key");
+        let amount = 50;
+
+        let transaction = Transaction::new_transaction(&wallet, recipient, amount)
+            .expect("Transaction should be created");
+
+        assert!(Transaction::verify_transaction(&transaction), "Transaction signature should be valid");
+    }
+    // ----- New test for invalidating a corrupt transaction -----
+    #[test]
+    fn invalidates_a_corrupt_transaction() {
+        let wallet = Wallet::new();
+        let recipient = String::from("recipient_public_key");
+        let amount = 50;
+
+        let mut transaction = Transaction::new_transaction(&wallet, recipient.clone(), amount)
+            .expect("Transaction should be created");
+        
+        // Corrupt the transaction by tampering with the first output's amount
+        if let Some(first_output) = transaction.outputs.get_mut(0) {
+            first_output.amount = 50000;
+        }
+
+        // Expect the verification to fail
+        assert!(!Transaction::verify_transaction(&transaction), "Corrupt transaction should fail verification");
+    }
 }
+
+
+
 
