@@ -11,13 +11,20 @@ use tokio::net::TcpStream;
 use url::Url;
 use tokio::time::{timeout, Duration};
 use serde_json::Value;
+use crate::TokioMutex;
 
 use crate::blockchain::block::Block;
 use crate::blockchain::blockchain::Blockchain;
 
-//1st terminal cargo run
-//2nd terminal HTTP_PORT=3002 P2P_PORT=5002 PEERS=ws://127.0.0.1:5001 cargo run
-//3rd terminal HTTP_PORT=3003 P2P_PORT=5003 PEERS=ws://127.0.0.1:5001,ws://127.0.0.1:5002 cargo run
+use crate::wallet::transaction_pool::TransactionPool;
+use crate::wallet::transaction::Transaction;
+
+//1st terminal cargo run --bin bitcoin_rust
+//2nd terminal HTTP_PORT=3002 P2P_PORT=5002 PEERS=ws://127.0.0.1:5001 cargo run --bin bitcoin_rust
+//3rd terminal HTTP_PORT=3003 P2P_PORT=5003 PEERS=ws://127.0.0.1:5001,ws://127.0.0.1:5002 cargo run --bin bitcoin_rust
+
+const MESSAGE_TYPE_CHAIN: &str = "CHAIN";
+const MESSAGE_TYPE_TRANSACTION: &str = "TRANSACTION";
 
 /// A peer write-half and its reading task handle
 #[derive(Clone)]
@@ -27,14 +34,20 @@ struct PeerSocket {
 
 pub struct P2pServer {
     pub blockchain: Arc<Mutex<Blockchain>>,
+    pub transaction_pool: Arc<TokioMutex<TransactionPool>>,
     pub peers: Vec<String>,
     pub sockets: Arc<Mutex<Vec<PeerSocket>>>,
 }
 
 impl P2pServer {
-    pub fn new(blockchain: Arc<Mutex<Blockchain>>, peers: Vec<String>) -> Self {
+    pub fn new(
+        blockchain: Arc<Mutex<Blockchain>>, 
+        transaction_pool: Arc<TokioMutex<TransactionPool>>,
+        peers: Vec<String>,
+        ) -> Self {
         Self {
             blockchain,
+            transaction_pool,
             peers,
             sockets: Arc::new(Mutex::new(Vec::new())),
         }
@@ -95,7 +108,6 @@ impl P2pServer {
 
         let write = Arc::new(Mutex::new(write));
 
-        // Spawn a task to handle incoming messages
         let self_clone = self.clone();
         tokio::spawn(async move {
             while let Some(msg_result) = read.next().await {
@@ -103,18 +115,29 @@ impl P2pServer {
                     Ok(msg) if msg.is_text() => {
                         let text = msg.into_text().unwrap();
                         // println!("Received message: {}", text);
-
-                        match serde_json::from_str::<Value>(&text) {
-                            Ok(data) => {
-                                let mut blockchain = self_clone.blockchain.lock().await;
-                                if let Ok(new_chain) = serde_json::from_value::<Vec<Block>>(data.clone()) {
-                                    println!("replacing_chain in message_handler");
-                                    blockchain.replace_chain(new_chain);
-                                } else {
-                                    println!("Failed to parse new chain from incoming message.");
+                        if let Ok(data) = serde_json::from_str::<serde_json::Value>(&text){
+                            if let Some(msg_type) = data.get("type").and_then(|v| v.as_str()){
+                                match msg_type{
+                                    MESSAGE_TYPE_CHAIN => {
+                                        if let Some(chain_val) = data.get("chain"){
+                                            if let Ok(new_chain) = serde_json::from_value::<Vec<Block>>(chain_val.clone()) {
+                                                let mut blockchain = self_clone.blockchain.lock().await;
+                                                blockchain.replace_chain(new_chain);
+                                                println!("called replace chain at connect socket");
+                                            }
+                                        }
+                                    }
+                                    MESSAGE_TYPE_TRANSACTION => {
+                                        if let Some(tx_val) = data.get("transaction"){
+                                            if let Ok(transaction) = serde_json::from_value::<Transaction>(tx_val.clone()){
+                                                let mut tp = self_clone.transaction_pool.lock().await;
+                                                tp.update_or_add_transaction(transaction);
+                                            }
+                                        }
+                                    }
+                                    _=>{}
                                 }
                             }
-                            Err(e) => eprintln!("Invalid JSON: {}", e),
                         }
                     }
                     Ok(_) => {}
@@ -136,6 +159,25 @@ impl P2pServer {
         self.send_chain_to_socket(peer_socket.clone()).await;
     }
 
+    pub async fn broadcast_transaction(&self,transaction: &Transaction){
+        let tx_message = serde_json::json!({
+            "type":MESSAGE_TYPE_TRANSACTION,
+            "transaction":transaction
+        })
+        .to_string();
+
+        let sockets = self.sockets.lock().await;
+        let futures = sockets.iter().map(|peer| {
+            let msg = tx_message.clone();
+            let write = Arc::clone(&peer.write);
+            async move{
+                let mut locked_writer = write.lock().await;
+                let _ =locked_writer.send(Message::Text(msg)).await;
+            }
+        });
+        futures::future::join_all(futures).await;
+    }
+
     async fn send_chain_to_socket(&self, peer: PeerSocket) {
         let blockchain = self.blockchain.lock().await;
         let chain_json = serde_json::to_string(&blockchain.chain).unwrap();
@@ -149,14 +191,15 @@ impl P2pServer {
 
     pub async fn sync_chains(&self) {
         println!("sync_chains called");
+        let blockchain = self.blockchain.lock().await;
+        let chain_message = serde_json::json!({
+            "type":MESSAGE_TYPE_CHAIN,
+            "chain": &blockchain.chain
+        })
+        .to_string();
         let sockets = self.sockets.lock().await;
-        let chain = {
-            let blockchain = self.blockchain.lock().await;
-            serde_json::to_string(&blockchain.chain).unwrap()
-        };
-        drop(chain.clone());
         let futures = sockets.iter().map(|peer| {
-            let msg = chain.clone();
+            let msg = chain_message.clone();
             let write = Arc::clone(&peer.write);
             async move {
                 let mut locked_writer = write.lock().await;

@@ -38,6 +38,7 @@ async fn main()->std::io::Result<()>{
 
     let p2p_server = Arc::new(P2pServer::new(
         blockchain.clone(),
+        transaction_pool.clone(),
         peer_list,
     ));
 

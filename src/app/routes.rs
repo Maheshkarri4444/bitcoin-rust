@@ -65,6 +65,7 @@ async fn post_transaction(
     payload: web::Json<TransactRequest>,
     wallet: web::Data<Arc<Wallet>>,
     transaction_pool: web::Data<Arc<TokioMutex<TransactionPool>>>,
+    p2p_server:web::Data<Arc<P2pServer>>,
 ) -> impl Responder {
     let recipient = payload.recipient.clone();
     let amount = payload.amount;
@@ -72,7 +73,8 @@ async fn post_transaction(
     let mut tp = transaction_pool.lock().await;
 
     match wallet.create_transaction(recipient,amount,&mut *tp){
-        Some(_transction)=>{
+        Some(ref transaction)=>{
+            let _ = p2p_server.broadcast_transaction(transaction).await;
             HttpResponse::Found()
                 .append_header(("Location","/transactions"))
                 .finish()
