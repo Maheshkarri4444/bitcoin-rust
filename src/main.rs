@@ -12,6 +12,7 @@ use std::sync::Arc;
 use tokio::sync::Mutex as TokioMutex;
 use blockchain::blockchain::Blockchain;
 use crate::wallet::transaction_pool::TransactionPool;
+use crate::wallet::wallet::Wallet;
 use app::p2p_server::P2pServer;
 
 #[actix_web::main]
@@ -33,6 +34,7 @@ async fn main()->std::io::Result<()>{
 
     let blockchain = Arc::new(TokioMutex::new(Blockchain::new()));
     let transaction_pool = Arc::new(TokioMutex::new(TransactionPool::new()));
+    let wallet = Arc::new(Wallet::new());
 
     let p2p_server = Arc::new(P2pServer::new(
         blockchain.clone(),
@@ -56,6 +58,7 @@ async fn main()->std::io::Result<()>{
             .app_data(web::Data::new(blockchain.clone()))
             .app_data(web::Data::new(p2p_server.clone()))
             .app_data(web::Data::new(transaction_pool.clone()))
+            .app_data(web::Data::new(wallet.clone()))
             .configure(config)
     })
     .bind(format!("127.0.0.1:{}",http_port)).expect("unable to start server")

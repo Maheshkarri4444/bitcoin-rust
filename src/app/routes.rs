@@ -7,6 +7,7 @@ use tokio::sync::Mutex as TokioMutex;
 use serde::Deserialize;
 
 use crate::wallet::transaction_pool::TransactionPool;
+use crate::wallet::wallet::Wallet;
 
 
 
@@ -53,8 +54,39 @@ async fn get_transactions(
     HttpResponse::Ok().json(&pool.transactions)
 }
 
+#[derive(Deserialize)]
+struct TransactRequest {
+    recipient:String,
+    amount: u64,
+}
+
+#[post("/transact")]
+async fn post_transaction(
+    payload: web::Json<TransactRequest>,
+    wallet: web::Data<Arc<Wallet>>,
+    transaction_pool: web::Data<Arc<TokioMutex<TransactionPool>>>,
+) -> impl Responder {
+    let recipient = payload.recipient.clone();
+    let amount = payload.amount;
+
+    let mut tp = transaction_pool.lock().await;
+
+    match wallet.create_transaction(recipient,amount,&mut *tp){
+        Some(_transction)=>{
+            HttpResponse::Found()
+                .append_header(("Location","/transactions"))
+                .finish()
+        }
+        None => {
+            HttpResponse::BadRequest().body("Transaction creation failed insufficient balance or error")
+        }
+    }
+
+}
+
 pub fn config(cfg: &mut web::ServiceConfig){
     cfg.service(get_blocks);
     cfg.service(mine_block);
     cfg.service(get_transactions);
+    cfg.service(post_transaction);
 }
