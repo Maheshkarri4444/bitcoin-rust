@@ -55,6 +55,29 @@ impl Transaction{
         Some(transaction)
     }
 
+    pub fn update(&mut self , sender_wallet:&Wallet,recipient:String,amount:u64)->Option<()>{
+        let sender_output_opt = self.outputs.iter_mut().find(|output| output.address == sender_wallet.public_key);
+        let sender_output = match sender_output_opt{
+            Some(o)=>o,
+            None=>{
+                println!("Sender not found in transaction outputs");
+                return None;
+            }
+        };
+        if amount >sender_output.amount{
+            println!("Amount: {} exceeds the balance",amount);
+            return None;
+        }
+
+        sender_output.amount -= amount;
+        self.outputs.push(Output{
+            amount,
+            address:recipient,
+        });
+        self.sign_transaction(sender_wallet);
+        Some(())
+    }
+
     fn sign_transaction(&mut self , sender_wallet:&Wallet){
         let hash = ChainUtil::hash(&self.outputs);
         let signature = sender_wallet.sign(&hash);
