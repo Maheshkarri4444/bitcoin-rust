@@ -30,4 +30,22 @@ impl TransactionPool {
             }
         })
     }
+
+    pub fn valid_transactions(&self)->Vec<&Transaction>{
+        self.transactions.iter().filter_map(|transaction| {
+            let output_total: u64 = transaction.outputs.iter().map(|output| output.amount).sum();
+            if transaction.input.amount != output_total {
+                println!("Invalid transaction from: {}",transaction.input.address);
+                return None;
+            }
+            if !Transaction::verify_signature(transaction){
+                println!("invalid signature from: {}",transaction.input.address);
+                return None;
+            }
+
+            Some(transaction)
+        }).collect()
+    }
+
+
 }
