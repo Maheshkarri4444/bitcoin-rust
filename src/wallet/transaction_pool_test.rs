@@ -42,4 +42,41 @@ mod tests{
 
         assert_ne!(new_serialized, old_serialized, "Updated transaction should not equal old transaction");
     }
+
+    #[test]
+    fn mixes_valid_and_corrupt_transactions(){
+        let mut tp = TransactionPool::new();
+        let mut wallet = Wallet::new();
+        let mut valid_transactions: Vec<Transaction> = Vec::new();
+
+
+        let transaction = wallet.create_transaction("random-address".to_string(),30,&mut tp)
+            .expect("Transaction creation failed");
+        valid_transactions.push(transaction.clone());
+
+        for i in 0..6{
+            wallet = Wallet::new();
+            let mut transaction =wallet.create_transaction("4rnd-4dre55".to_string(),30,&mut tp)
+                .expect("Transaction creation failed");
+            
+            if i%2==0{
+                if let Some(input) = transaction.input.as_mut(){
+                    input.amount = 99999;
+                }
+                tp.update_or_add_transaction(transaction);
+            } else {
+                tp.update_or_add_transaction(transaction.clone());
+                valid_transactions.push(transaction);
+            }
+        }
+        let pool_json = serde_json::to_string(&tp.transactions).expect("Serialize pool transactions");
+        let valid_json = serde_json::to_string(&valid_transactions).expect("Serialize valid transactions");
+        assert_ne!(pool_json,valid_json,"Pool transactions should not equal valid transactions");
+
+        let filtered_valid = tp.valid_transactions();
+        assert_eq!(filtered_valid.len(),valid_transactions.len());
+        for vt in valid_transactions.iter(){
+            assert!(filtered_valid.iter().any(|t| t.id ==vt.id),"Valid transaction missing from filtered list");
+        }
+    }
 }
