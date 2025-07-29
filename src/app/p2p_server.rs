@@ -25,6 +25,7 @@ use crate::wallet::transaction::Transaction;
 
 const MESSAGE_TYPE_CHAIN: &str = "CHAIN";
 const MESSAGE_TYPE_TRANSACTION: &str = "TRANSACTION";
+const MESSAGE_TYPE_CLEAR_TRANSACTIONS: &str = "CLEAR_TRANSACTIONS";
 
 /// A peer write-half and its reading task handle
 #[derive(Clone)]
@@ -135,6 +136,11 @@ impl P2pServer {
                                             }
                                         }
                                     }
+                                    MESSAGE_TYPE_CLEAR_TRANSACTIONS => {
+                                        let mut tp = self_clone.transaction_pool.lock().await;
+                                        tp.clear();
+                                        println!("Transaction pool is cleared now");
+                                    }
                                     _=>{}
                                 }
                             }
@@ -210,4 +216,25 @@ impl P2pServer {
         });
         futures::future::join_all(futures).await;
     }
+
+    pub async fn broadcast_clear_transactions(&self){
+        let clear_message = serde_json::json!({
+            "type":MESSAGE_TYPE_CLEAR_TRANSACTIONS
+        }).to_string();
+
+        let sockets = self.sockets.lock().await;
+        let futures = sockets.iter().map(|peer| {
+            let msg = clear_message.clone();
+            let write = Arc::clone(&peer.write);
+            async move {
+                let mut locked_writer = write.lock().await;
+                if let Err(e). = locked_writer.send(Message::Text(msg)).await{
+                    eprintln!("failed to send clear transaction message to peer socket: {}",e);
+                }
+            }
+        });
+        futures::future::join_all(futures).await;
+    }
+
+
 }

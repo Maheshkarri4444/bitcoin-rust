@@ -40,6 +40,7 @@ impl<'a>Miner<'a>{
         //clear the transaction pool
         self.transaction_pool.clear();
         //broadcast to every miner to clear their transaction pool 
+        self.p2p_server.broadcast_clear_transactions();
         println!("Mining Block with {} valid transctions.",valid_transactions.len());
     }
 
