@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use crate::chain_util::ChainUtil;
 use crate::wallet::wallet::Wallet;
 use serde::{Serialize,Deserialize}; 
+use crate::config::MINING_REWARD;
 
 #[derive(Clone,Serialize,Deserialize,Debug,PartialEq)]
 pub struct Input {
@@ -24,6 +25,14 @@ pub struct Output {
     pub amount: u64,
     pub address: String,
 }
+
+#[derive(Clone, Serialize, Deserialize, PartialEq, Debug)]
+pub struct RewardTransaction {
+    pub id: String,
+    pub coinbase: String,
+    pub output: Output,
+}
+
 
 
 impl Transaction{
@@ -101,4 +110,25 @@ impl Transaction{
             false
         }
     }
+
 }
+
+impl RewardTransaction {
+    pub fn new(miner_address: String, block_height: u64) -> Self {
+    let coinbase = format!(
+        "{}-{}", 
+        block_height,
+        Uuid::new_v4() // unique extranonce
+    );
+
+    Self {
+        id: ChainUtil::id(),
+        coinbase,
+        output: Output {
+            amount: MINING_REWARD,
+            address: miner_address,
+        },
+    }
+    }
+}
+

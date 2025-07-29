@@ -28,7 +28,11 @@ impl<'a>Miner<'a>{
 
     pub fn mine(&self){
         let valid_transactions = self.transaction_pool.valid_transactions();
-
+        //include a reward for the miner
+        //create a block consisting of the valid transactions
+        //synchronize the chains in the peer-to-peer server
+        //clear the transaction pool
+        //broadcast to every miner to clear their transaction pool 
         println!("Mining Block with {} valid transctions.",valid_transactions.len());
     }
 

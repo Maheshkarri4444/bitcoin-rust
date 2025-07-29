@@ -1,5 +1,5 @@
 use crate::wallet::wallet::Wallet;
-use crate::wallet::transaction::{Transaction,Output};
+use crate::wallet::transaction::{Transaction,Output,RewardTransaction};
 
 
 #[cfg(test)]
@@ -136,6 +136,25 @@ mod tests{
             next_amount,
             "Next recipient output should match the updated amount"
         );
+    }
+
+    #[test]
+    fn creates_valid_reward_transaction() {
+        let miner_address = String::from("miner_public_key_123");
+        let block_height = 100;
+
+        let reward_tx = RewardTransaction::new(miner_address.clone(), block_height);
+
+        assert_eq!(reward_tx.output.amount, crate::config::MINING_REWARD);
+
+        assert_eq!(reward_tx.output.address, miner_address);
+
+        assert!(
+            reward_tx.coinbase.contains(&block_height.to_string()),
+            "Coinbase field should include block height"
+        );
+
+        assert!(!reward_tx.id.is_empty(), "RewardTransaction id should not be empty");
     }
 }
 
