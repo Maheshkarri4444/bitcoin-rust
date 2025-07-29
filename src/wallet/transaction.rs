@@ -5,6 +5,9 @@ use crate::chain_util::ChainUtil;
 use crate::wallet::wallet::Wallet;
 use serde::{Serialize,Deserialize}; 
 use crate::config::MINING_REWARD;
+use crate::blockchain::blockchain::Blockchain;
+use std::sync::Arc;
+use tokio::sync::Mutex as TokioMutex;
 
 #[derive(Clone,Serialize,Deserialize,Debug,PartialEq)]
 pub struct Input {
@@ -18,6 +21,12 @@ pub struct Transaction {
     pub id:String,
     pub input: Option<Input>,
     pub outputs: Vec<Output>,
+}
+
+#[derive(Clone , Deserialize,Serialize,PartialEq,Debug)]
+pub enum ChainTransaction {
+    Normal(Transaction),
+    Reward(RewardTransaction),
 }
 
 #[derive(Clone,Serialize,Deserialize,PartialEq,Debug)]
@@ -36,15 +45,15 @@ pub struct RewardTransaction {
 
 
 impl Transaction{
-    pub fn new_transaction(sender_wallet: &Wallet,recipient:String,amount:u64)->Option<Self>{
-        if amount > sender_wallet.balance {
+    pub async fn new_transaction(sender_wallet: &Wallet,recipient:String,amount:u64,current_balance:u64,)->Option<Self>{
+        if amount > current_balance {
             eprintln!("Amount: {} exceeds balance.",amount);
             return None;
         }
         let mut outputs = Vec::new();
 
         outputs.push(Output{
-            amount:sender_wallet.balance - amount,
+            amount:current_balance - amount,
             address: sender_wallet.public_key.clone(),
         });
 
@@ -59,12 +68,12 @@ impl Transaction{
             outputs,
         };
 
-        transaction.sign_transaction(sender_wallet);
+        transaction.sign_transaction(sender_wallet,current_balance);
 
         Some(transaction)
     }
 
-    pub fn update(&mut self , sender_wallet:&Wallet,recipient:String,amount:u64)->Option<()>{
+    pub fn update(&mut self , sender_wallet:&Wallet,recipient:String,amount:u64,current_balance:u64)->Option<()>{
         let sender_output_opt = self.outputs.iter_mut().find(|output| output.address == sender_wallet.public_key);
         let sender_output = match sender_output_opt{
             Some(o)=>o,
@@ -83,23 +92,28 @@ impl Transaction{
             amount,
             address:recipient,
         });
-        self.sign_transaction(sender_wallet);
+        self.sign_transaction(sender_wallet,current_balance);
         Some(())
     }
 
-    fn sign_transaction(&mut self , sender_wallet:&Wallet){
+    fn sign_transaction(&mut self , sender_wallet:&Wallet,current_balance: u64){
         let hash = ChainUtil::hash(&self.outputs);
         let signature = sender_wallet.sign(&hash);
         self.input = Some(Input{
             timestamp: chrono::Utc::now().timestamp_millis() as u128,
-            amount:sender_wallet.balance,
+            amount:current_balance,
             address: sender_wallet.public_key.clone(),
             signature: signature.as_ref().to_vec(),
-        })
+        });
     }
 
-    pub fn verify_transaction(transaction:&Transaction)->bool{
+    pub async fn verify_transaction(transaction:&Transaction,blockchain: &Arc<TokioMutex<Blockchain>>,)->bool{
         if let Some(input)=&transaction.input{
+            let actual_balance = Wallet::calculate_balance_for_address(blockchain, &input.address).await;
+            if input.amount != actual_balance {
+                println!("Invalid transaction: input amount {} does not match actual balance {}", input.amount, actual_balance);
+                return false; // Balance mismatch, reject transaction
+            }
             ChainUtil::verify_signature(
                 &input.address,
                 &input.signature,

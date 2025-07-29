@@ -228,7 +228,7 @@ impl P2pServer {
             let write = Arc::clone(&peer.write);
             async move {
                 let mut locked_writer = write.lock().await;
-                if let Err(e). = locked_writer.send(Message::Text(msg)).await{
+                if let Err(e) = locked_writer.send(Message::Text(msg)).await{
                     eprintln!("failed to send clear transaction message to peer socket: {}",e);
                 }
             }

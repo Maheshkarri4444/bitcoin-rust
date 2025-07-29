@@ -3,6 +3,7 @@ use std::fmt;
 use serde::{Serialize, Deserialize};
 use crate::config::{DIFFICULTY,MINE_RATE};
 use crate::chain_util::ChainUtil;
+use crate::wallet::transaction::ChainTransaction;
 
 #[derive(Debug,Clone,Serialize,Deserialize,PartialEq)]
 pub struct Block {
@@ -10,13 +11,13 @@ pub struct Block {
     pub timestamp:u128,
     pub last_hash: String,
     pub hash: String,
-    pub data: Vec<String>,
+    pub data: Vec<ChainTransaction>,
     pub nonce: u64,
     pub difficulty: usize,
 }
 
 impl Block{
-    pub fn new(block_number: u64, timestamp: u128, last_hash: String,hash: String,data:Vec<String>,nonce:u64,difficulty:usize)->Self{
+    pub fn new(block_number: u64, timestamp: u128, last_hash: String,hash: String,data:Vec<ChainTransaction>,nonce:u64,difficulty:usize)->Self{
         Self{
             block_number,
             timestamp,
@@ -32,7 +33,7 @@ impl Block{
         Block::new(0,0,String::from("----"),String::from("f1r57-h45h"),vec![],0,DIFFICULTY)
     }
 
-    pub fn mine_block(last_block: &Block,data:Vec<String>)->Block{
+    pub fn mine_block(last_block: &Block,data:Vec<ChainTransaction>)->Block{
         let last_hash = last_block.hash.clone();
         let block_number = last_block.block_number +1;
         let mut nonce = 0u64;
@@ -58,8 +59,9 @@ impl Block{
         }
     }
 
-    pub fn hash(block_number:u64,timestamp:u128,last_hash:&str,data:&Vec<String>,nonce:&u64,difficulty:&usize)->String{
-        ChainUtil::hash(format!("{}{}{}{:?}{}{}",block_number,timestamp,last_hash,data,nonce,difficulty))
+    pub fn hash(block_number:u64,timestamp:u128,last_hash:&str,data:&Vec<ChainTransaction>,nonce:&u64,difficulty:&usize)->String{
+        let data_json = serde_json::to_string(data).expect("Failed to serialize for hashing");
+        ChainUtil::hash(format!("{}{}{}{}{}{}",block_number,timestamp,last_hash,data_json,nonce,difficulty))
     }
 
     pub fn block_hash(block:&Block)->String{

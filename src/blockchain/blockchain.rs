@@ -1,5 +1,5 @@
 use super::block::Block;
-
+use crate::wallet::transaction::ChainTransaction;
 #[derive(Debug)]
 pub struct Blockchain{
     pub chain: Vec<Block>,
@@ -12,11 +12,11 @@ impl Blockchain {
         }
     }
 
-    pub fn add_block(&mut self,data:Vec<String>)->Block{
+    pub fn add_block(&mut self,data:Vec<ChainTransaction>)->Block{
         let last_block=self.chain.last().expect("Blockchain should have atleat one block");
         let new_block= Block::mine_block(last_block,data);
         self.chain.push(new_block.clone());
-        self.chain.last().unwrap().clone()
+        new_block
     }
 
     pub fn is_valid_chain(chain: &[Block])->bool{

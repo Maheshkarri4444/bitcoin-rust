@@ -1,5 +1,8 @@
 use crate::wallet::transaction::Transaction;
 use serde::{Serialize,Deserialize};
+use crate::blockchain::blockchain::Blockchain;
+use std::sync::Arc;
+use tokio::sync::Mutex as TokioMutex;
 
 #[derive(Serialize,Deserialize)]
 pub struct TransactionPool{
@@ -31,20 +34,35 @@ impl TransactionPool {
         })
     }
 
-    pub fn valid_transactions(&self)->Vec<&Transaction>{
-        self.transactions.iter().filter_map(|transaction| {
-            let output_total: u64 = transaction.outputs.iter().map(|output| output.amount).sum();
-            if transaction.input.clone().unwrap().amount != output_total {
-                println!("Invalid transaction from: {}",transaction.input.clone().unwrap().address);
-                return None;
-            }
-            if !Transaction::verify_transaction(transaction){
-                println!("invalid signature from: {}",transaction.input.clone().unwrap().address);
-                return None;
-            }
+    pub async fn valid_transactions(
+        &self,
+        blockchain: Arc<TokioMutex<Blockchain>>,
+    ) -> Vec<&Transaction> {
+        let mut valid_txs = Vec::new();
 
-            Some(transaction)
-        }).collect()
+        for transaction in &self.transactions {
+            let output_total: u64 = transaction.outputs.iter().map(|output| output.amount).sum();
+
+            if let Some(input) = &transaction.input {
+                if input.amount != output_total {
+                    println!("Invalid transaction from: {}", input.address);
+                    continue;
+                }
+
+                // Await async verify_transaction
+                if !Transaction::verify_transaction(transaction, &blockchain).await {
+                    println!("Invalid signature from: {}", input.address);
+                    continue;
+                }
+
+                valid_txs.push(transaction);
+            } else {
+                println!("Transaction missing input");
+                // You can choose whether to include or exclude this transaction
+            }
+        }
+
+        valid_txs
     }
 
     pub fn clear(&mut self){
