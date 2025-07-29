@@ -47,5 +47,9 @@ impl TransactionPool {
         }).collect()
     }
 
+    pub fn clear(&mut self){
+        self.transactions.clear();
+    }
+
 
 }

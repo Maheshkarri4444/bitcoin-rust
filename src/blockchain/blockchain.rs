@@ -52,5 +52,9 @@ impl Blockchain {
 
     }
 
+    pub fn latest_block(&self) -> &Block {
+        self.chain.last().expect("Blockchain should have at least one block")
+    }
+
 
 }
