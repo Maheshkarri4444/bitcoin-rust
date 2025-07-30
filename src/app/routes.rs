@@ -6,11 +6,15 @@ use std::sync::{Arc,Mutex};
 use tokio::sync::Mutex as TokioMutex;
 use serde::Deserialize;
 use std::cmp;
+use std::sync::atomic::{AtomicBool, Ordering};
+use tokio::time::Duration;
 
 use crate::wallet::transaction_pool::TransactionPool;
 use crate::wallet::wallet::Wallet;
 use crate::app::miner::Miner;
 use crate::wallet::transaction::ChainTransaction;
+
+static MINING_RUNNING: AtomicBool = AtomicBool::new(false);
 
 
 #[get("/blocks")]
@@ -136,6 +140,32 @@ async fn get_balance_by_pubkey(
     }))
 }
 
+#[get("/startmining")]
+async fn start_mining(miner: web::Data<Arc<TokioMutex<Miner>>>)->impl Responder{
+    if MINING_RUNNING.swap(true,Ordering::SeqCst){
+        return HttpResponse::Ok().body("Mining already running.");
+    }
+    let miner = miner.clone();
+    tokio::spawn(async move{
+        while MINING_RUNNING.load(Ordering::SeqCst) {
+            {
+                let mut lock = miner.lock().await;
+                lock.mine().await;
+            }
+            tokio::time::sleep(Duration::from_secs(10)).await;
+        }
+    });
+    HttpResponse::Ok().body("Started Mining.")
+}
+
+
+#[get("/stopmining")]
+async fn stop_mining() -> impl Responder {
+    MINING_RUNNING.store(false, Ordering::SeqCst);
+    HttpResponse::Ok().body("Stopped mining.")
+}
+
+
 
 pub fn config(cfg: &mut web::ServiceConfig){
     cfg.service(get_blocks);
@@ -146,4 +176,6 @@ pub fn config(cfg: &mut web::ServiceConfig){
     cfg.service(get_public_key);
     cfg.service(get_self_balance);
     cfg.service(get_balance_by_pubkey);
+    cfg.service(start_mining);
+    cfg.service(stop_mining);
 }
