@@ -121,10 +121,21 @@ impl P2pServer {
                                 match msg_type{
                                     MESSAGE_TYPE_CHAIN => {
                                         if let Some(chain_val) = data.get("chain"){
-                                            if let Ok(new_chain) = serde_json::from_value::<Vec<Block>>(chain_val.clone()) {
-                                                let mut blockchain = self_clone.blockchain.lock().await;
-                                                blockchain.replace_chain(new_chain);
-                                                println!("called replace chain at connect socket");
+                                            // if let Ok(new_chain) = serde_json::from_value::<Vec<Block>>(chain_val.clone()) {
+                                            //     let mut blockchain = self_clone.blockchain.lock().await;
+                                            //     blockchain.replace_chain(new_chain);
+                                            //     println!("called replace chain at connect socket");
+                                            // }
+                                            match serde_json::from_value::<Vec<Block>>(chain_val.clone()) {
+                                                Ok(new_chain) => {
+                                                    let mut blockchain = self_clone.blockchain.lock().await;
+                                                    blockchain.replace_chain(new_chain);
+                                                    println!("called replace chain at connect socket");
+                                                }
+                                                Err(e) => {
+                                                    eprintln!("Failed to decode blockchain: {}", e);
+                                                    eprintln!("Data was: {:#}", chain_val);
+                                                }
                                             }
                                         }
                                     }
@@ -186,8 +197,12 @@ impl P2pServer {
 
     async fn send_chain_to_socket(&self, peer: PeerSocket) {
         let blockchain = self.blockchain.lock().await;
-        let chain_json = serde_json::to_string(&blockchain.chain).unwrap();
-        drop(blockchain);
+        // let chain_json = serde_json::to_string(&blockchain.chain).unwrap();
+        // drop(blockchain);
+        let chain_json = serde_json::json!({
+            "type":MESSAGE_TYPE_CHAIN,
+            "chain":&blockchain.chain
+        }).to_string();
 
         let mut writer = peer.write.lock().await;
         if let Err(e) = writer.send(Message::Text(chain_json)).await {

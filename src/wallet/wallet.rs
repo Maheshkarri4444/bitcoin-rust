@@ -73,72 +73,82 @@ impl Wallet {
 
 
 
-    pub async fn calculate_balance_for_address(
-        blockchain: &Arc<TokioMutex<Blockchain>>,
-        address:&str,
-    ) -> u64 {
-        let chain = blockchain.lock().await;
-        let mut balance:u64 = 0;
-        let mut transactions:Vec<ChainTransaction> = Vec::new();
+pub async fn calculate_balance_for_address(
+    blockchain: &Arc<TokioMutex<Blockchain>>,
+    address: &str,
+) -> u64 {
+    let chain = blockchain.lock().await;
 
-        for block in &chain.chain{
-            for tx in &block.data{
-                transactions.push(tx.clone());
-            }
-        }
+    // 1) Scan to find the MOST RECENT outgoing spend by `address`.
+    //    We track both the tx.input timestamp and the block timestamp containing it.
+    let mut last_spend_input_ts: u128 = 0;
+    let mut last_spend_block_ts: u128 = 0;
+    let mut balance_after_last_spend: u64 = 0;
 
-        let normal_txns_sent_by_address:Vec<&Transaction> = 
-        transactions.iter().filter_map(|ct| {
+    for block in &chain.chain {
+        for ct in &block.data {
             if let ChainTransaction::Normal(tx) = ct {
                 if let Some(input) = &tx.input {
-                    if input.address == address{
-                        return Some(tx);
-                    }
-                }
-            }
-            None
-        }).collect();
-        let mut start_time = 0u128;
-        if !normal_txns_sent_by_address.is_empty(){
-            let recent_tx = normal_txns_sent_by_address
-                .iter()
-                .max_by_key(|tx| tx.input.as_ref().unwrap().timestamp)
-                .unwrap();
-            
-            balance = recent_tx
-                .outputs
-                .iter()
-                .find(|output| output.address == address)
-                .map(|output| output.amount)
-                .unwrap_or(0);
-            
-            start_time = recent_tx.input.as_ref().unwrap().timestamp;
-        }
+                    if input.address == address {
+                        // Is this spend newer than what we have recorded so far?
+                        if input.timestamp > last_spend_input_ts
+                            || (input.timestamp == last_spend_input_ts
+                                && block.timestamp > last_spend_block_ts)
+                        {
+                            last_spend_input_ts = input.timestamp;
+                            last_spend_block_ts = block.timestamp;
 
-        for ct in &transactions {
-            match ct {
-                ChainTransaction::Normal(tx)=>{
-                    if let Some(input) = &tx.input {
-                        if input.timestamp > start_time {
-                            for output in &tx.outputs {
-                                if output.address == address{
-                                    balance = balance.saturating_add(output.amount);
-                                }
-                            }
+                            // The balance right after this spend is the "change" output (if any).
+                            balance_after_last_spend = tx
+                                .outputs
+                                .iter()
+                                .find(|o| o.address == address)
+                                .map(|o| o.amount)
+                                .unwrap_or(0);
                         }
                     }
                 }
-                ChainTransaction::Reward(reward_tx)=>{
-                    if reward_tx.output.address == address{
-                        balance = balance.saturating_add(reward_tx.output.amount);
+            }
+        }
+    }
+
+    // 2) Starting from the block AFTER the last spend, add ALL credits to `address`:
+    //    - any normal tx outputs to `address`
+    //    - any reward outputs to `address`
+    //
+    //    NOTE: We filter by block.timestamp > last_spend_block_ts to avoid
+    //    re-adding earlier rewards/credits that are already reflected in the change.
+    let mut balance = balance_after_last_spend;
+
+    for block in &chain.chain {
+        if block.timestamp <= last_spend_block_ts {
+            continue;
+        }
+        for ct in &block.data {
+            match ct {
+                ChainTransaction::Normal(tx) => {
+                    for o in &tx.outputs {
+                        if o.address == address {
+                            balance = balance.saturating_add(o.amount);
+                        }
+                    }
+                }
+                ChainTransaction::Reward(r) => {
+                    if r.output.address == address {
+                        balance = balance.saturating_add(r.output.amount);
                     }
                 }
             }
         }
-        balance
     }
+
+    // 3) If there was NO spend, last_spend_block_ts == 0 and balance_after_last_spend == 0,
+    //    so the loop above adds all credits from the beginning (block timestamps are > 0
+    //    except genesis), which is the intended behavior for a never-spent address.
+    balance
 }
 
+}
 impl fmt::Display for Wallet {
     fn fmt(&self, f: &mut fmt::Formatter<'_>)-> fmt::Result {
         write!{

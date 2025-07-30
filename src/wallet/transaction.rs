@@ -24,6 +24,8 @@ pub struct Transaction {
 }
 
 #[derive(Clone , Deserialize,Serialize,PartialEq,Debug)]
+// #[serde(untagged)]
+#[serde(tag = "kind", content = "tx")]
 pub enum ChainTransaction {
     Normal(Transaction),
     Reward(RewardTransaction),
