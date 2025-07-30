@@ -5,6 +5,7 @@ mod chain_util;
 mod wallet;
 
 use actix_web::{App,HttpServer,web};
+use actix_cors::Cors;
 use app::routes::config;
 use std::env;
 use dotenv::dotenv;
@@ -65,6 +66,14 @@ async fn main()->std::io::Result<()>{
 
     HttpServer::new(move ||{
         App::new()
+            .wrap(
+            Cors::default()
+                .allow_any_origin()
+                .allow_any_method()
+                .allow_any_header()
+                // .send_wildcard() // not required; only if you need it
+                // .max_age(3600)
+            )
             .app_data(web::Data::new(blockchain.clone()))
             .app_data(web::Data::new(p2p_server.clone()))
             .app_data(web::Data::new(transaction_pool.clone()))

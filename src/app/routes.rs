@@ -8,6 +8,7 @@ use serde::Deserialize;
 // use std::cmp;
 use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::time::Duration;
+use serde::Serialize;
 
 use crate::wallet::transaction_pool::TransactionPool;
 use crate::wallet::wallet::Wallet;
@@ -16,6 +17,16 @@ use crate::wallet::transaction::ChainTransaction;
 
 static MINING_RUNNING: AtomicBool = AtomicBool::new(false);
 
+#[derive(Serialize)]
+struct MiningStatus {
+    running: bool,
+}
+
+#[get("/mining-status")]
+async fn mining_status() -> impl Responder {
+    let running = MINING_RUNNING.load(Ordering::SeqCst);
+    HttpResponse::Ok().json(MiningStatus { running })
+}
 
 #[get("/blocks")]
 async fn get_blocks(
@@ -178,4 +189,5 @@ pub fn config(cfg: &mut web::ServiceConfig){
     cfg.service(get_balance_by_pubkey);
     cfg.service(start_mining);
     cfg.service(stop_mining);
+    cfg.service(mining_status);
 }
