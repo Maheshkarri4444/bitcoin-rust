@@ -1,4 +1,4 @@
-use sha2::{Sha256,Digest};
+// use sha2::{Digest};
 use std::fmt;
 use serde::{Serialize, Deserialize};
 use crate::config::{DIFFICULTY,MINE_RATE};
@@ -37,8 +37,8 @@ impl Block{
         let last_hash = last_block.hash.clone();
         let block_number = last_block.block_number +1;
         let mut nonce = 0u64;
-        let mut timestamp: u128;
-        let mut difficulty = last_block.difficulty;
+        let mut _timestamp: u128;
+        let  _difficulty = last_block.difficulty;
         loop {
             let timestamp = chrono::Utc::now().timestamp_millis() as u128;
             let difficulty = Block::adjust_difficulty(last_block,timestamp);
@@ -64,12 +64,9 @@ impl Block{
         ChainUtil::hash(format!("{}{}{}{}{}{}",block_number,timestamp,last_hash,data_json,nonce,difficulty))
     }
 
-    pub fn block_hash(block:&Block)->String{
-        Block::hash(block.block_number,block.timestamp,&block.last_hash,&block.data,&block.nonce,&block.difficulty,)
-    }
 
     pub fn adjust_difficulty(last_block:&Block , current_time:u128)->usize{
-        let mut difficulty =last_block.difficulty;
+        let difficulty =last_block.difficulty;
         if difficulty < 1{
             return 1;
         }

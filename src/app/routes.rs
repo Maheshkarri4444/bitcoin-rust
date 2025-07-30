@@ -1,11 +1,11 @@
 use actix_web::{get,post,web,HttpResponse,Responder};
-use crate::blockchain::block::Block;
+// use crate::blockchain::block::Block;
 use crate::blockchain::blockchain::Blockchain;
 use crate::app::p2p_server::P2pServer;
-use std::sync::{Arc,Mutex};
+use std::sync::{Arc};
 use tokio::sync::Mutex as TokioMutex;
 use serde::Deserialize;
-use std::cmp;
+// use std::cmp;
 use std::sync::atomic::{AtomicBool, Ordering};
 use tokio::time::Duration;
 
@@ -97,8 +97,8 @@ async fn post_transaction(
 async fn mine_transactions(
     miner: web::Data<Arc<TokioMutex<Miner>>>,
 )->impl Responder{
-    let mut miner = miner.lock().await;
-    let block = miner.mine().await;
+    let miner = miner.lock().await;
+    let _block = miner.mine().await;
     println!("finished mine block");
 
     HttpResponse::Found()
@@ -149,7 +149,7 @@ async fn start_mining(miner: web::Data<Arc<TokioMutex<Miner>>>)->impl Responder{
     tokio::spawn(async move{
         while MINING_RUNNING.load(Ordering::SeqCst) {
             {
-                let mut lock = miner.lock().await;
+                let lock = miner.lock().await;
                 lock.mine().await;
             }
             tokio::time::sleep(Duration::from_secs(10)).await;

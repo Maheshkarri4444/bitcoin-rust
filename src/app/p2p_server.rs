@@ -10,7 +10,7 @@ use futures::{StreamExt, SinkExt};
 use tokio::net::TcpStream;
 use url::Url;
 use tokio::time::{timeout, Duration};
-use serde_json::Value;
+// use serde_json::Value;
 use crate::TokioMutex;
 
 use crate::blockchain::block::Block;
@@ -29,7 +29,7 @@ const MESSAGE_TYPE_CLEAR_TRANSACTIONS: &str = "CLEAR_TRANSACTIONS";
 
 /// A peer write-half and its reading task handle
 #[derive(Clone)]
-struct PeerSocket {
+pub struct PeerSocket {
     write: Arc<Mutex<futures::stream::SplitSink<WebSocketStream<MaybeTlsStream<TcpStream>>, Message>>>,
 }
 

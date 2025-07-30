@@ -1,6 +1,6 @@
 use k256::ecdsa::{
     SigningKey, VerifyingKey,
-    signature::{Signer, Verifier, Signature as _}, 
+    signature::{ Verifier, Signature as _}, 
     Signature as K256Signature,
 };
 use k256::EncodedPoint;

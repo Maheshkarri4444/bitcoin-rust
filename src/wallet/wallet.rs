@@ -1,15 +1,15 @@
 use std::fmt;
 use crate::config::INITIAL_BALANCE;
-use k256::ecdsa::{SigningKey,VerifyingKey,Signature,signature::Signer};
+use k256::ecdsa::{SigningKey,Signature,signature::Signer};
 use k256::EncodedPoint;
 use k256::elliptic_curve::sec1::ToEncodedPoint;
 use crate::chain_util::ChainUtil;
 use crate::wallet::transaction_pool::TransactionPool;
 use crate::wallet::transaction::Transaction;
-use crate::wallet::transaction::RewardTransaction;
+// use crate::wallet::transaction::RewardTransaction;
 use crate::blockchain::blockchain::Blockchain;
 use std::sync::Arc;
-use serde::{Serialize,Deserialize};
+// use serde::{Serialize,Deserialize};
 use tokio::sync::Mutex as TokioMutex;
 use crate::wallet::transaction::ChainTransaction;
 use tokio::sync::RwLock;
@@ -62,7 +62,7 @@ impl Wallet {
                 None
             }
         }else {
-            if let Some(mut tx) = Transaction::new_transaction(self,recipient,amount,balance).await{
+            if let Some(tx) = Transaction::new_transaction(self,recipient,amount,balance).await{
                 transaction_pool.update_or_add_transaction(tx.clone());
                 Some(tx)
             }else{
