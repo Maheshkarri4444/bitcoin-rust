@@ -1,4 +1,4 @@
-# ₿ bitcoin-rust
+₿ bitcoin-rust
 A learning-driven, end‑to‑end cryptocurrency prototype in Rust—built to understand, from first principles, how keys, signatures, mining, difficulty, mempools, propagation, and incentives come together to form a working blockchain.
 
 ![Rust](https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white)
@@ -86,23 +86,62 @@ A learning-driven, end‑to‑end cryptocurrency prototype in Rust—built to un
 - `MINING_REWARD` — initial block subsidy before **halving** applies.
 
 ---
-
 ## 🏃 Quickstart (Multi‑Node Local Net)
-- **simple three‑terminal setup**
-  - Terminal 1
+
+- **Clone the repository and build**
+  - `git clone <repo_url>`
+  - `cd bitcoin-rust`
+  - `cargo build`
+
+---
+
+- **Run three nodes (one per terminal)**  
+  - Terminal 1  
     - `cargo run --bin bitcoin_rust`
-  - Terminal 2
+  - Terminal 2  
     - `HTTP_PORT=3002 P2P_PORT=5002 PEERS=ws://127.0.0.1:5001 cargo run --bin bitcoin_rust`
-  - Terminal 3
+  - Terminal 3  
     - `HTTP_PORT=3003 P2P_PORT=5003 PEERS=ws://127.0.0.1:5001,ws://127.0.0.1:5002 cargo run --bin bitcoin_rust`
+
 ---
 
 ## 🖥️ Frontend (per‑node UI)
+
 - `cd frontend`
+- `npm install`
 - Run three dev servers pointing to each node (one per terminal)
-  - ` VITE_API_BASE=http://localhost:3001 npm run dev -- --port 5173`
-  - ` VITE_API_BASE=http://localhost:3002 npm run dev -- --port 5174`
-  - ` VITE_API_BASE=http://localhost:3003 npm run dev -- --port 5175`
+  - `VITE_API_BASE=http://localhost:3001 npm run dev -- --port 5173`
+  - `VITE_API_BASE=http://localhost:3002 npm run dev -- --port 5174`
+  - `VITE_API_BASE=http://localhost:3003 npm run dev -- --port 5175`
+
+
+---
+
+## 🖼️ Frontend Screenshots
+- **Dashboard (per‑node overview)**
+<img width="400" height="311" alt="Screenshot 2025-07-30 at 23 28 41" src="https://github.com/user-attachments/assets/9792aa3e-a6db-4a90-ba52-a027bef86e33" />
+
+- **Start Mining (in every node)**
+<img width="400" height="311" alt="Screenshot 2025-07-30 at 23 28 54" src="https://github.com/user-attachments/assets/3865b734-0190-4317-bb27-648c71845875" />
+
+- **Block Dashboard (same in every node (Synchronization))**
+<img width="400" height="311" alt="Screenshot 2025-07-30 at 23 29 13" src="https://github.com/user-attachments/assets/c0b05fe5-0717-40c6-b5f3-c55e4a509b86" />
+<img width="400" height="311" alt="Screenshot 2025-07-30 at 23 29 13" src="https://github.com/user-attachments/assets/6139053e-6622-496c-83c0-bceb3a6fb764" />
+
+- **Wallet**
+<img width="400" height="311" alt="Screenshot 2025-07-30 at 23 30 05" src="https://github.com/user-attachments/assets/c54ef978-81ca-49b2-8710-8e2ce080354a" />
+
+- **Transaction**
+<img width="400" height="311" alt="Screenshot 2025-07-30 at 23 30 05" src="https://github.com/user-attachments/assets/6b208cda-1859-4622-bc86-99aa6f7655f2" />
+
+- **Transaction Pool**
+<img width="400" height="311" alt="Screenshot 2025-07-30 at 23 30 05" src="https://github.com/user-attachments/assets/33e00ccd-b4c6-4f11-96f4-8917de65b897" />
+
+- **Direct Api Calls**
+<img width="400" height="340" alt="Screenshot 2025-07-30 at 23 36 35" src="https://github.com/user-attachments/assets/7fc89c31-91bf-44bc-acb8-919d9c262cf9" />
+<img width="400" height="340" alt="Screenshot 2025-07-30 at 23 37 03" src="https://github.com/user-attachments/assets/b7bf9622-3615-4109-b4ae-6c0abfeb9a81" />
+<img width="400" height="340" alt="Screenshot 2025-07-30 at 23 37 22" src="https://github.com/user-attachments/assets/41950878-aab1-4a76-81b6-75fd82416318" />
+
 
 ---
 
