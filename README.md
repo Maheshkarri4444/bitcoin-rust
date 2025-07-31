@@ -1,4 +1,5 @@
 ₿ bitcoin-rust
+
 A learning-driven, end‑to‑end cryptocurrency prototype in Rust—built to understand, from first principles, how keys, signatures, mining, difficulty, mempools, propagation, and incentives come together to form a working blockchain.
 
 ![Rust](https://img.shields.io/badge/Rust-000000?style=for-the-badge&logo=rust&logoColor=white)
