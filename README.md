@@ -14,10 +14,8 @@ A learning-driven, end‑to‑end cryptocurrency prototype in Rust—built to un
 ---
 
 ## 💡 Why I Built This (Passion)
-- I’m fascinated by **how money works at the protocol level**—consensus, cryptography, and incentives—and I learn best by **building the whole stack myself**.
-- This repository is my **hands-on study log**: iterate, break, measure, and improve—turning whiteboard ideas into real, observable code.
-- I care about **clean Rust** and **clear invariants**: explicit state, deterministic behavior, reproducible runs, and small, testable components.
-- I value **learning in public**: feedback, reviews, and issues are welcome; they sharpen my understanding of distributed systems and security.
+
+I have always been deeply passionate about cryptocurrencies and the technology behind them. The idea that money can be decentralized, trustless, and governed purely by protocols has fascinated me for years. This project is my way of diving deep into how cryptocurrencies work at the protocol level—consensus, cryptography, mining, mempools, and incentives. I wanted to go beyond just reading about it and actually build the entire stack myself from scratch, experimenting, breaking things, and iterating until I truly understood how all the pieces fit together. This repository serves as my hands‑on study log, where I focus on writing clean, idiomatic Rust with explicit state, deterministic behavior, and small, testable components. I believe in learning in public, so feedback, reviews, and issues are always welcome as they help me refine my understanding of distributed systems and security.
 
 ---
 
