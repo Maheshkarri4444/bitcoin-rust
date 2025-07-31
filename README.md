@@ -76,6 +76,19 @@ I have always been deeply passionate about cryptocurrencies and the technology b
 
 ---
 
+## 📝 What I Missed & Plan for Next Time
+
+- **Transaction Fees**  
+  - Currently, there are no transaction fees implemented. Adding fees will incentivize miners beyond the block subsidy and allow prioritization of transactions.
+
+- **Full Chain Propagation**  
+  - Right now, the entire chain is sent to peers whenever a block is created. While this works for a small test network, in real-world blockchains only the new block (or missing blocks) are propagated. Next time, I will optimize propagation to reduce unnecessary data transfer.
+
+- **Improved P2P Communication**  
+  - Currently, the peer-to-peer communication is built using `TcpStream` and `Listener` but wrapped via WebSockets for simplicity. Next iteration, I plan to experiment with raw TCP, as well as explore using **UDP** and **QUIC** (like Solana) to achieve lower latency and more robust networking.
+
+---
+
 ## ⚙️ Configuration
 - `HTTP_PORT` — HTTP server port (default `3001`).
 - `P2P_PORT` — WebSocket peer port (default `5001`).
